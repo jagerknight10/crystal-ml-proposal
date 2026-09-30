@@ -20,11 +20,11 @@
 \setbeamercolor{structure}{fg=navy}
 \setbeamercolor{frametitle}{fg=navy}
 \setbeamercolor{title}{fg=navy}
-\setbeamertemplate{footline}{\hspace{7mm}\scriptsize Reference-based crystal screening and generation\hfill\insertframenumber/\inserttotalframenumber\hspace{7mm}\vspace{3mm}}
+\setbeamertemplate{footline}{\hspace{7mm}\scriptsize Graph-informed crystal screening and generation\hfill\insertframenumber/\inserttotalframenumber\hspace{7mm}\vspace{3mm}}
 \newcommand{\ehull}{E_{\mathrm{hull}}}
 \newcommand{\source}[1]{\par\vspace{2mm}{\scriptsize\color{gray}#1}}
 \tikzset{stage/.style={draw=navy,line width=.5pt,rounded corners=1mm,align=center,font=\small,minimum height=9mm,inner sep=2mm},arr/.style={-{Stealth[length=1.5mm]},line width=.6pt,draw=navy}}
-\title{Reference-based screening\\and generation of crystals}
+\title{Graph-informed screening\\and generation of crystals}
 \subtitle{Enriched reference pools and learned graph context}
 \author{}\institute{}\date{}
 \input{diagrams/slide-architectures.tex}
@@ -104,8 +104,8 @@ These observations motivate experiments. We are claiming theoretically that this
 \begin{itemize}\setlength\itemsep{3mm}
 \item \textbf{Competition references:} crystals using the candidate's elements.
 \item \textbf{Cross-chemistry analogues:} crystals with relevant structural or chemical similarities.
-\item Retrieve a sparse neighbourhood from a shared graph, then attach the generated candidate as a query node.
-\item Define retrieval and edge rules explicitly before learning graph aggregation.
+\item Build a broad search pool using chemical seeds, similarity search and graph expansion; attach the candidate as a query node.
+\item Learn candidate-specific reference relevance, then return ranked reference crystals with scores.
 \end{itemize}
 \end{columns}
 \vspace{3mm}
@@ -113,47 +113,42 @@ Analogues supply predictive context. They cannot be decomposition products when 
 \end{frame}
 
 % 6
-\begin{frame}{Candidate screening with a graph transformer}
+\begin{frame}{Learning which reference crystals to select}
 \begin{columns}[c]
-\column{.34\textwidth}\centering
+\column{.37\textwidth}\centering
 \screeningtransformer
-\column{.63\textwidth}
-\textbf{Relation-aware graph transformer}
-\begin{itemize}\setlength\itemsep{1.5mm}
-\item Inputs: frozen Crys-JEPA embeddings, composition features and typed graph edges.
-\item Multi-head attention exchanges information between connected crystal nodes.
-\item LayerNorm, feed-forward layers and residual connections update the node representations.
+\column{.60\textwidth}
+\textbf{Candidate-conditioned reference selection}
+\begin{itemize}\setlength\itemsep{0.5mm}
+\item Use composition, structural similarity and graph expansion to form a broad search pool from the permitted database.
+\item A graph transformer produces contextual candidate and reference states $z_c,z_r$ using typed relationships.
+\item A pairwise head assigns a relevance score $s(c,r)$ to each potential reference $r$ for candidate $c$.
+\item \textbf{Output: ranked reference crystals and their relevance scores}, followed by selection under a reference budget $k$.
 \end{itemize}
-\vspace{2mm}
-\textbf{Separate MLP regression head}
-\begin{itemize}\setlength\itemsep{1.5mm}
-\item Select the final candidate vector $z_c^{(L)}$.
-\item A small feed-forward network maps it to one predicted energy-above-hull value.
-\end{itemize}
-\[
-\widehat{\ehull}(c)=\mathrm{MLP}_{\mathrm{head}}(z_c^{(L)}).
-\]
-\small Known energy-above-hull values supply training labels; they are not candidate input features.
+\par\vspace{1mm}
+\small Reference relevance is distinct from candidate stability. A separate downstream comparison uses the selected references to rank candidates.
+\par\vspace{1mm}
+\small\textbf{Open choice:} how to train reference relevance. One option is supervision through a downstream screening objective, rather than assumed ``correct reference'' labels.
 \end{columns}
 \end{frame}
 
 % 7
-\begin{frame}{Screening evaluation}
+\begin{frame}{Reference selection and screening evaluation}
 \small
 \begin{tabular}{>{\raggedright\arraybackslash}p{.43\textwidth}>{\raggedright\arraybackslash}p{.49\textwidth}}
 \toprule
 Comparison & Question \\\midrule
-Original score; candidate-only predictor & Do references improve ranking over the existing score and candidate features alone? \\[2mm]
-Nearest-neighbour / simple aggregation; matched set-attention model & Is learned aggregation sufficient without graph structure? \\[2mm]
-Restricted-reference vs. enriched-reference GNN & Do cross-chemistry analogues add useful information? \\[2mm]
-Remove reference--reference edges; perturb edge types & Do the relationships themselves contribute? \\[2mm]
-Energy predictor + conventional hull evaluation & Does the graph offer value over a direct energy-based approach? \\\bottomrule
+Original restricted references vs. enriched search pool & Does access to outside-system analogues help? \\[2mm]
+Fixed retrieval vs. learned reference ranking & Does learning select more useful references from the same search pool? \\[2mm]
+Pairwise / set-based selector vs. graph transformer & Do relationships improve selection beyond the same available features? \\[2mm]
+Relevant vs. shuffled references; vary $k$ & Does reference content matter beyond the information budget? \\[2mm]
+Original candidate score; candidate-only predictor; energy predictor + hull & Does the complete method improve candidate screening over simpler alternatives? \\\bottomrule
 \end{tabular}
 \vspace{3mm}
 \begin{itemize}
-\item Fix the generated candidate pool, selection budget and available supervision.
-\item Match reference features and counts for graph/set comparisons. Report coverage and runtime.
-\item Hold out related structures together; test transfer to unseen chemical systems.
+\item Hold the downstream candidate scorer fixed when comparing reference selectors.
+\item Match search pools, reference budgets, features and supervision for selector comparisons.
+\item Evaluate usefulness through independently validated candidate yield; high relevance scores alone are not evidence of better references.
 \end{itemize}
 \end{frame}
 
@@ -162,7 +157,7 @@ Energy predictor + conventional hull evaluation & Does the graph offer value ove
 \centering
 \begin{tikzpicture}
 \node[stage,fill=attn,text width=26mm] (pool) at (0,0) {Fixed\\candidate pool};
-\node[stage,fill=ffn,text width=26mm] (rank) at (3.6,0) {Each screening\\method};
+\node[stage,fill=ffn,text width=26mm] (rank) at (3.6,0) {Both the screening methods\\method};
 \node[stage,fill=linear,text width=26mm] (budget) at (7.2,0) {Same selection\\budget $B$};
 \node[stage,fill=norm,text width=26mm] (dft) at (10.8,0) {Independent\\DFT evaluation};
 \draw[arr] (pool)--(rank);\draw[arr] (rank)--(budget);\draw[arr] (budget)--(dft);
@@ -175,7 +170,6 @@ Energy predictor + conventional hull evaluation & Does the graph offer value ove
 \item Report failed relaxations and calculations. Keep learned selection scores separate from final validation labels.
 \end{itemize}
 \vspace{2mm}
-A near-hull threshold indicates thermodynamic competitiveness under the evaluation protocol, not demonstrated synthesizability.
 \end{frame}
 
 % 9
@@ -252,7 +246,7 @@ The initial scope chooses a target composition before generation. Any improvemen
 \item Retrieve using the completed structure, screen, and select candidates.
 \end{enumerate}
 \end{columns}
-\vspace{3mm}\small Retrieval during training must use only information available at inference. Inference does not update weights; selected outputs may support a later refinement round.
+\vspace{3mm}\small Currently, inference does not update weights. Selected outputs may support a later refinement round (include with the Crys-JEPA flow)
 \end{frame}
 
 % 13

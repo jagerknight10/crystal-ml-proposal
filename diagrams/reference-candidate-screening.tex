@@ -22,16 +22,16 @@
  edge/.style={draw=outline!70,line width=.65pt}]
 \path[use as bounding box] (0,0) rectangle (28,18.8);
 \node[font=\large\bfseries] at (5.25,18.2) {(a) Candidate screening and validation};
-\node[font=\large\bfseries] at (17.8,18.2) {(b) Candidate-conditioned screening GNN};
+\node[font=\large\bfseries] at (17.8,18.2) {(b) Candidate-conditioned reference selector};
 
 % Part a. Read from top to bottom.
 \node[layer,fill=attn,minimum width=4.6cm] (gen) at (3.9,16.9) {Diffusion generator\\Generated crystal candidates};
 \node[layer,fill=norm,minimum width=4.6cm] (relax) at (3.9,15.3) {MatterSim relaxation\\Atomic positions and unit cell};
 \node[layer,fill=attn,minimum width=4.6cm] (filter) at (3.9,13.7) {Validity, uniqueness\\and novelty checks};
 \node[layer,fill=linear!75,minimum width=4.6cm] (embed) at (3.9,12.0) {Frozen Crys-JEPA\\Candidate embedding $h_c$};
-\node[layer,fill=analog!50,minimum width=4.6cm] (retrieve) at (3.9,10.25) {Retrieve reference subgraph\\Using composition and $h_c$};
-\node[layer,fill=ffn,minimum width=4.6cm] (screen) at (3.9,8.5) {Screening GNN\\Predict $\widehat E_{\mathrm{hull}}(c)$};
-\node[layer,fill=attn,minimum width=4.6cm] (rank) at (3.9,6.75) {Rank candidates\\Select a fixed budget $B$};
+\node[layer,fill=analog!50,minimum width=4.6cm] (retrieve) at (3.9,10.25) {Broad reference search pool\\Seeds + graph expansion};
+\node[layer,fill=ffn,minimum width=4.6cm] (screen) at (3.9,8.5) {Reference selector\\Rank crystals by relevance};
+\node[layer,fill=attn,minimum width=4.6cm] (rank) at (3.9,6.75) {Downstream candidate scoring\\Select a fixed candidate budget $B$};
 \node[layer,fill=norm,minimum width=4.6cm] (dft) at (3.9,4.9) {Independent validation\\DFT + compatible hull evaluation};
 \node[layer,fill=comp!55,minimum width=4.6cm] (yield) at (3.9,3.0) {Measure discovery yield\\Stable / near-hull, unique, novel};
 \foreach \a/\b in {gen/relax,relax/filter,filter/embed,embed/retrieve,retrieve/screen,screen/rank,rank/dft,dft/yield}
@@ -45,7 +45,7 @@
  {Learned screening does not certify stability.\\Match selection and validation budgets.};
 
 % Part b. Retrieved references plus the completed candidate as query node.
-\node[font=\small,align=center] at (16.1,16.9) {Relaxed candidate $c$ and retrieved whole-crystal references};
+\node[font=\small,align=center] at (16.1,16.9) {Candidate $c$ and whole-crystal references in the search pool};
 \node[ref] (a) at (12.7,15.6) {$A$};
 \node[ref] (ab) at (15.6,15.6) {$AB$};
 \node[ref,fill=analog!70] (ac) at (19.2,15.6) {$AC_2$};
@@ -87,19 +87,19 @@
 \draw[arrow] (edges.west)--(gat.east);
 \node[align=left,font=\small,anchor=west] at (20.8,6.15)
  {Reference nodes exchange\\information. The candidate\\receives competition and\\analogue context.};
-\node[layer,fill=linear!65,minimum width=3.2cm] (readout) at (15.6,3.6) {Select candidate state $z_c^{(L)}$};
-\node[layer,fill=ffn,minimum width=3.2cm] (head) at (15.6,2.4) {MLP stability head};
-\node (score) at (15.6,1.3) {$\widehat E_{\mathrm{hull}}(c)\in\mathbb R$};
+\node[layer,fill=linear!65,minimum width=3.2cm] (readout) at (15.6,3.6) {Candidate--reference pairs $(z_c^{(L)},z_r^{(L)})$};
+\node[layer,fill=ffn,minimum width=3.2cm] (head) at (15.6,2.4) {Pairwise relevance head $s(c,r)$};
+\node (score) at (15.6,1.3) {Rank and select $k$ references: $\{(r,s(c,r))\}$};
 \draw[arrow] (sum2)--(readout);
 \draw[arrow] (readout)--(head);
 \draw[arrow] (head)--(score);
 \node[align=left,font=\small,anchor=west] at (20.8,2.8)
- {Train on labelled crystal queries.\\True $E_{\mathrm{hull}}$ is a target,\\not an input feature.\\Lower predictions rank first.\\Use separate GNN weights\\for screening and generation.};
+ {$s(c,r)$ measures reference relevance,\\not the candidate\textquotesingle s stability.\\Training objective remains open.\\Possible supervision: usefulness\\for downstream screening.\\Selection rule and role budgets\\must be specified and evaluated.};
 % Selection can supply a later training round; inference does not update weights.
 \draw[arrow,dashed,draw=outline!65] (rank.west)--(.45,6.75)--(.45,16.9)--(gen.west);
 \node[rotate=90,font=\scriptsize,fill=white,inner sep=2pt] at (.45,11.6)
  {Later fine-tuning on selected candidates};
 \node[align=center,font=\small] at (14,.35)
- {Proposed flow. Energy-above-hull regression is illustrated; the objective and graph-attention cell remain design choices.};
+ {Proposed reference-selection flow. Search rules, relevance supervision and the downstream candidate scorer remain design choices.};
 \end{tikzpicture}
 \end{document}
