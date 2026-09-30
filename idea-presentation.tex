@@ -1,276 +1,328 @@
-% Crystal screening discussion slides: compile with latexmk -pdf idea-presentation.tex
-% Self-contained references: no external bibliography or BibTeX step required.
+% Compile with latexmk -pdf idea-presentation.tex. References are self-contained.
 \documentclass[10pt,aspectratio=169]{beamer}
-
 \usetheme{Boadilla}
 \usecolortheme{dove}
-\usefonttheme{professionalfonts}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,amsmath,amssymb,booktabs,array,tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
 \setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{blocks}[default]
+\setbeamertemplate{itemize items}[circle]
+\setbeamertemplate{enumerate item}{\insertenumlabel.}
 \setbeamersize{text margin left=7mm,text margin right=7mm}
-\setbeamertemplate{footline}{%
-  \leavevmode\hbox{% 
-  \begin{beamercolorbox}[wd=.78\paperwidth,ht=2.6ex,dp=1ex,leftskip=1em]{author in head/foot}\insertshorttitle\end{beamercolorbox}%
-  \begin{beamercolorbox}[wd=.22\paperwidth,ht=2.6ex,dp=1ex,rightskip=1em plus1fil]{date in head/foot}\insertframenumber\,/\,\inserttotalframenumber\end{beamercolorbox}}}
-
-\usepackage{booktabs}
-\usepackage{amsmath,amssymb}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc}
-\usepackage{xcolor}
-
-\definecolor{navy}{RGB}{22,51,86}
-\definecolor{teal}{RGB}{0,121,140}
-\definecolor{orange}{RGB}{207,111,35}
-\definecolor{lightblue}{RGB}{230,240,247}
+\definecolor{navy}{HTML}{18334C}
+\definecolor{norm}{HTML}{B9CDD0}
+\definecolor{attn}{HTML}{ECE6D8}
+\definecolor{ffn}{HTML}{B9B2C4}
+\definecolor{linear}{HTML}{D8B5BE}
+\definecolor{comp}{HTML}{A8D5CE}
+\definecolor{analog}{HTML}{C9BEDA}
 \setbeamercolor{structure}{fg=navy}
 \setbeamercolor{frametitle}{fg=navy}
 \setbeamercolor{title}{fg=navy}
-\setbeamercolor{block title}{bg=navy,fg=white}
-\setbeamercolor{block body}{bg=lightblue,fg=black}
-\setbeamercolor{alertblock title}{bg=orange,fg=white}
-\setbeamercolor{alertblock body}{bg=orange!12,fg=black}
-\setbeamercolor{itemize item}{fg=teal}
-\setbeamercolor{itemize subitem}{fg=teal}
-
+\setbeamertemplate{footline}{\hspace{7mm}\scriptsize Reference-based crystal screening and generation\hfill\insertframenumber/\inserttotalframenumber\hspace{7mm}\vspace{3mm}}
 \newcommand{\ehull}{E_{\mathrm{hull}}}
-\newcommand{\embed}{\mathbf{h}}
-
-\title[Graph-guided crystal screening]{Graph-Guided Reference Screening\\for Diffusion-Generated Crystals}
-\subtitle{A proposal to improve Crys-JEPA's screening-and-refinement loop}
-\author{}
-\institute{}
-\date{\today}
-
+\newcommand{\source}[1]{\par\vspace{2mm}{\scriptsize\color{gray}#1}}
+\tikzset{stage/.style={draw=navy,line width=.5pt,rounded corners=1mm,align=center,font=\small,minimum height=9mm,inner sep=2mm},arr/.style={-{Stealth[length=1.5mm]},line width=.6pt,draw=navy}}
+\title{Reference-based screening\\and generation of crystals}
+\subtitle{Enriched reference pools and learned graph context}
+\author{}\institute{}\date{}
+\input{diagrams/slide-architectures.tex}
 \begin{document}
 
+% 1
 \begin{frame}
-  \titlepage
-  \vfill
-  \centering\scriptsize
-  Motivation: Crys-JEPA \cite{liu2026crysjepa}, MatterGen \cite{MatterGen2025}, and MatterSim \cite{yang2024mattersim}
+\titlepage
+\vspace{-6mm}
+\begin{center}\small
+Screening generated candidates, followed by reference-conditioned generation.\\[3mm]
+The architectures and improvements discussed here are proposed,\\not implemented or experimentally validated results.
+\end{center}
 \end{frame}
 
-\begin{frame}{Research objective}
-\begin{block}{Question}
-Can a \alert{chemistry-constrained graph over generated candidates and known reference phases} rank stable crystals better than Crys-JEPA's equal-weight embedding-distance heuristic?
-\end{block}
-\vspace{0.4em}
-\begin{columns}[T]
-\column{0.48\textwidth}
-\textbf{Why it matters}
-\begin{itemize}
-  \item Diffusion models can generate many plausible periodic structures.
-  \item Only a small fraction will be stable and novel after validation.
-  \item Better screening can improve the data used for generator refinement.
-\end{itemize}
-\column{0.48\textwidth}
-\textbf{Contribution hypothesis}
-\begin{itemize}
-  \item Crys-JEPA retrieves chemically related phases but aggregates them uniformly.
-  \item A GNN can learn which phase relationships are useful for ranking.
-  \item The main experiment keeps the encoder frozen for clean attribution.
-\end{itemize}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Context: generation, relaxation, and refinement}
+% 2
+\begin{frame}{Crys-JEPA: existing pipeline}
 \centering
-\begin{tikzpicture}[node distance=5mm and 5mm, every node/.style={font=\small,align=center}, box/.style={draw,rounded corners=2pt,minimum height=12mm,minimum width=25mm,fill=lightblue}, refinebox/.style={draw,rounded corners=2pt,minimum height=12mm,minimum width=25mm,fill=orange!16}, arr/.style={-{Stealth[length=2.2mm]},thick,navy}]
-  \node[box] (gen) {Diffusion generator\\raw crystals};
-  \node[box,right=of gen] (relax) {MatterSim\\relaxation};
-  \node[box,right=of relax] (screen) {Screening\\and selection};
-  \node[refinebox,right=of screen] (ft) {Fine-tune\\generator};
-  \draw[arr,shorten <=1pt,shorten >=1pt] (gen.east)--(relax.west);
-  \draw[arr,shorten <=1pt,shorten >=1pt] (relax.east)--(screen.west);
-  \draw[arr,shorten <=1pt,shorten >=1pt] (screen.east)--(ft.west);
-  \draw[arr,rounded corners=3pt,shorten <=1pt,shorten >=1pt]
-    (ft.north) -- ++(0,0.75) -| (gen.north);
-  \node[above,font=\scriptsize] at ($(gen.north)!0.5!(ft.north)+(0,0.75)$)
-    {refined generator produces the next candidate pool};
+\begin{tikzpicture}
+\node[stage,fill=attn,text width=27mm] (gen) at (0,0) {Diffusion\\generator};
+\node[stage,fill=norm,text width=27mm] (rel) at (4,0) {MatterSim\\relaxation};
+\node[stage,fill=attn,text width=36mm] (checks) at (8.6,0) {Validity, uniqueness\\and novelty checks};
+\node[stage,fill=linear,text width=36mm] (enc) at (8.6,-1.65) {Crys-JEPA\\candidate embedding};
+\node[stage,fill=analog,text width=33mm] (refs) at (4,-1.65) {Retrieve references\\same system / subsystems};
+\node[stage,fill=ffn,text width=29mm] (score) at (0,-1.65) {Mean squared\\embedding distance};
+\node[stage,fill=attn,text width=29mm] (select) at (0,-3.3) {Select lowest-\\distance fraction};
+\node[stage,fill=linear,text width=33mm] (ft) at (4,-3.3) {Fine-tune generator};
+\draw[arr] (gen)--(rel);\draw[arr] (rel)--(checks);\draw[arr] (checks)--(enc);
+\draw[arr] (enc)--(refs);\draw[arr] (refs)--(score);\draw[arr] (score)--(select);\draw[arr] (select)--(ft);
+\draw[arr,rounded corners=1mm] (ft.south)--(4,-4.0)--(-2.3,-4.0)|-(gen.west);
 \end{tikzpicture}
-\vspace{0.8em}
+\vspace{2mm}
 \begin{itemize}
-  \item \textbf{Relaxation} adjusts atomic coordinates and lattice parameters to reduce predicted energy and forces.
-  \item MatterSim is a machine-learned force field: much cheaper than DFT, but not a substitute for final DFT validation \cite{yang2024mattersim}.
-  \item Our intervention is the \alert{screening} box: improve what is selected for refinement.
+\item Crys-JEPA is the crystal encoder; the diffusion generator is a separate model.
+\item References are whole crystals. The refinement loop does not require new DFT calculations.
 \end{itemize}
+\source{Existing method: Liu et al., Crys-JEPA \cite{liu2026crysjepa}. Relaxation: MatterSim \cite{yang2024mattersim}.}
 \end{frame}
 
-\begin{frame}{What MatterGen contributes}
-\begin{columns}[T]
-\column{0.56\textwidth}
-\textbf{MatterGen} is a diffusion model that jointly denoises:
-\begin{itemize}
-  \item discrete atomic species;
-  \item fractional coordinates on a periodic cell;
-  \item lattice parameters.
+% 3
+\begin{frame}{Crys-JEPA screening score}
+For a relaxed candidate $c$, retrieve training crystals whose elements lie within the candidate's chemical system:
+\[
+R(c)=\{r\in\mathcal D_{\mathrm{train}}:\mathrm{elements}(r)\subseteq\mathrm{elements}(c)\}.
+\]
+The ranking score is the mean squared distance in Crys-JEPA embedding space:
+\[
+ s(c)=\frac{1}{|R(c)|}\sum_{r\in R(c)}\|h_c-h_r\|_2^2.
+\]
+\begin{itemize}\setlength\itemsep{2mm}
+\item For an $AB_2$ candidate, eligible references include $A$, $B$, and known $A$--$B$ phases.
+\item Each retrieved reference contributes equally. Smaller scores rank first.
+\item The score measures proximity in an energy-aware representation; it is not an explicit energy-above-hull calculation (this is our understanding).
 \end{itemize}
-It uses an equivariant, periodic atom-neighbour graph inside each crystal \cite{MatterGen2025}.
-\vspace{0.4em}
-\begin{alertblock}{Important distinction}
-MatterGen's graph represents \textbf{atoms within one crystal}. This proposal builds a second graph whose nodes are \textbf{complete crystals}.
-\end{alertblock}
-\column{0.40\textwidth}
+\source{Existing scoring rule: Crys-JEPA \cite{liu2026crysjepa}.}
+\end{frame}
+
+% 4
+\begin{frame}{Limitations of the reference pool}
+\begin{itemize}\setlength\itemsep{4mm}
+\item \textbf{Chemical-system restriction.} The original pool excludes outside-system crystals that may contain transferable structural or chemical information.
+\item \textbf{Unequal information, equal weights.} References can differ in relevance and redundancy, but the score assigns equal weight to each.
+\item \textbf{No explicit joint competition.} Pairwise distances do not directly represent composition-balanced alternatives such as $AB+B$ for $AB_2$.
+\item \textbf{Reference-set dependence.} Adding references changes both the centroid and spread of their embeddings, and therefore the average-distance score.
+\end{itemize}
+\vspace{3mm}
+These observations motivate experiments. We are claiming theoretically that this can be improved.
+\end{frame}
+
+% 5
+\begin{frame}{Proposed reference graph}
+\begin{columns}[c]
+\column{.48\textwidth}
 \centering
-\begin{tikzpicture}[scale=.83, every node/.style={circle,draw,minimum size=6.4mm,font=\scriptsize}, edge/.style={teal,thick}]
-  \node[fill=teal!20] (a) at (0,1.2) {A};
-  \node[fill=orange!20] (b) at (1.4,1.7) {B};
-  \node[fill=teal!20] (c) at (2.1,.5) {A};
-  \node[fill=orange!20] (d) at (.7,-.1) {B};
-  \draw[edge] (a)--(b)--(c)--(d)--(a);
-  \draw[edge] (a)--(c);
-  \node[draw=none,rectangle,font=\scriptsize,align=center] at (1,-.9) {periodic atom graph\\inside one candidate};
-\end{tikzpicture}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Crys-JEPA screening and the proposed extension}
-\begin{columns}[T]
-\column{0.51\textwidth}
-Crys-JEPA learns an energy-aware crystal embedding:
-\[
-  \text{crystal }x \longmapsto \embed_x .
-\]
-For a relaxed candidate $c$, it retrieves references $R(c)$ from the same chemical system and subsystems, and uses
-\[
- D(c)=\frac{1}{|R(c)|}\sum_{r\in R(c)}\lVert\embed_c-\embed_r\rVert_2^2.
-\]
-Smaller distance $D(c)$ means a more promising candidate \cite{liu2026crysjepa}.
-\column{0.45\textwidth}
-\begin{alertblock}{Limitation}
-References form an \textbf{unstructured, equal-weight set}.
-\begin{itemize}
-  \item All retrieved phases contribute equally.
-  \item Reference--reference relationships are discarded.
-  \item The score can be sensitive to redundant or weakly relevant references.
+\referencegraph
+\column{.49\textwidth}
+\begin{itemize}\setlength\itemsep{3mm}
+\item \textbf{Competition references:} crystals using the candidate's elements.
+\item \textbf{Cross-chemistry analogues:} crystals with relevant structural or chemical similarities.
+\item Retrieve a sparse neighbourhood from a shared graph, then attach the generated candidate as a query node.
+\item Define retrieval and edge rules explicitly before learning graph aggregation.
 \end{itemize}
-\end{alertblock}
+\end{columns}
+\vspace{3mm}
+Analogues supply predictive context. They cannot be decomposition products when they introduce elements absent from the candidate.
+\end{frame}
+
+% 6
+\begin{frame}{Candidate screening with a graph transformer}
+\begin{columns}[c]
+\column{.34\textwidth}\centering
+\screeningtransformer
+\column{.63\textwidth}
+\textbf{Relation-aware graph transformer}
+\begin{itemize}\setlength\itemsep{1.5mm}
+\item Inputs: frozen Crys-JEPA embeddings, composition features and typed graph edges.
+\item Multi-head attention exchanges information between connected crystal nodes.
+\item LayerNorm, feed-forward layers and residual connections update the node representations.
+\end{itemize}
+\vspace{2mm}
+\textbf{Separate MLP regression head}
+\begin{itemize}\setlength\itemsep{1.5mm}
+\item Select the final candidate vector $z_c^{(L)}$.
+\item A small feed-forward network maps it to one predicted energy-above-hull value.
+\end{itemize}
+\[
+\widehat{\ehull}(c)=\mathrm{MLP}_{\mathrm{head}}(z_c^{(L)}).
+\]
+\small Known energy-above-hull values supply training labels; they are not candidate input features.
 \end{columns}
 \end{frame}
 
-\begin{frame}{Proposed idea: a local chemistry-aware reference graph}
+% 7
+\begin{frame}{Screening evaluation}
+\small
+\begin{tabular}{>{\raggedright\arraybackslash}p{.43\textwidth}>{\raggedright\arraybackslash}p{.49\textwidth}}
+\toprule
+Comparison & Question \\\midrule
+Original score; candidate-only predictor & Do references improve ranking over the existing score and candidate features alone? \\[2mm]
+Nearest-neighbour / simple aggregation; matched set-attention model & Is learned aggregation sufficient without graph structure? \\[2mm]
+Restricted-reference vs. enriched-reference GNN & Do cross-chemistry analogues add useful information? \\[2mm]
+Remove reference--reference edges; perturb edge types & Do the relationships themselves contribute? \\[2mm]
+Energy predictor + conventional hull evaluation & Does the graph offer value over a direct energy-based approach? \\\bottomrule
+\end{tabular}
+\vspace{3mm}
+\begin{itemize}
+\item Fix the generated candidate pool, selection budget and available supervision.
+\item Match reference features and counts for graph/set comparisons. Report coverage and runtime.
+\item Hold out related structures together; test transfer to unseen chemical systems.
+\end{itemize}
+\end{frame}
+
+% 8
+\begin{frame}{Screening validation}
 \centering
-\begin{tikzpicture}[node distance=12mm, every node/.style={align=center,font=\scriptsize}, cand/.style={circle,draw=orange,very thick,fill=orange!20,minimum size=16mm}, ref/.style={circle,draw=teal,thick,fill=teal!15,minimum size=11mm}, edge/.style={-{Stealth[length=1.8mm]},thick,teal!85!black,shorten <=1pt,shorten >=1pt}, sim/.style={thick,dashed,navy!75}]
-  \node[cand] (q) at (0,0) {Generated\\candidate $c$};
-  \node[ref] (ab) at (-3.1,1.45) {$AB$\\phase};
-  \node[ref] (ac) at (-3.1,-1.45) {$AC$\\phase};
-  \node[ref] (bc) at (3.1,1.45) {$BC$\\phase};
-  \node[ref] (abc) at (3.1,-1.45) {$ABC$\\phase};
-  \node[draw=none,rectangle,font=\scriptsize,align=center] (chem) at (0,-2.2) {Candidate chemical system: $\{A,B,C\}$\\Solid arrows: reference messages to candidate. Dashed lines: reference context.};
-  \draw[edge] (ab)--(q); \draw[edge] (ac)--(q); \draw[edge] (bc)--(q); \draw[edge] (abc)--(q);
-  \draw[sim] (ab)--(ac); \draw[sim] (ab)--(bc); \draw[sim] (bc)--(abc); \draw[sim] (ac)--(abc);
+\begin{tikzpicture}
+\node[stage,fill=attn,text width=26mm] (pool) at (0,0) {Fixed\\candidate pool};
+\node[stage,fill=ffn,text width=26mm] (rank) at (3.6,0) {Each screening\\method};
+\node[stage,fill=linear,text width=26mm] (budget) at (7.2,0) {Same selection\\budget $B$};
+\node[stage,fill=norm,text width=26mm] (dft) at (10.8,0) {Independent\\DFT evaluation};
+\draw[arr] (pool)--(rank);\draw[arr] (rank)--(budget);\draw[arr] (budget)--(dft);
 \end{tikzpicture}
-\vspace{0.25em}
-\begin{itemize}
-  \item \textbf{Nodes:} complete relaxed generated crystals and known reference phases.
-  \item \textbf{Edges:} first enforce chemical validity; then retain $k$ nearest neighbours in frozen Crys-JEPA embedding space.
-  \item \textbf{Edge features:} embedding distance, relation type (exact system / subsystem), and composition similarity.
+\vspace{5mm}
+\begin{itemize}\setlength\itemsep{3mm}
+\item Primary outcome: number and fraction of selected candidates below a predefined $\ehull$ threshold.
+\item Use compatible energy methods and corrections, and sufficient competition coverage for hull evaluation.
+\item If only a subset receives DFT, use the same prespecified sampling procedure for each method.
+\item Report failed relaxations and calculations. Keep learned selection scores separate from final validation labels.
 \end{itemize}
+\vspace{2mm}
+A near-hull threshold indicates thermodynamic competitiveness under the evaluation protocol, not demonstrated synthesizability.
 \end{frame}
 
-\begin{frame}{Model: learn relevance, not merely proximity}
+% 9
+\begin{frame}{Using reference context during generation}
+The same reference database graph may also inform how a candidate is constructed.
+\vspace{4mm}
 \begin{columns}[T]
-\column{0.56\textwidth}
-For candidate $c$, construct its allowable reference pool only from training-side phases:
-\[
-R_{\mathrm{valid}}(c)=\{r:\;\mathrm{elements}(r)\subseteq\mathrm{elements}(c)\}.
-\]
-Build a small local graph with $k\in\{8,16,32\}$ retrieved references and apply an edge-aware GNN:
-\[
-\widehat{p}_{\mathrm{stable}}(c)=\mathrm{GNN}(G_c).
-\]
-\begin{itemize}
-  \item Start with two-layer GraphSAGE or graph attention.
-  \item Retain a direct candidate-feature path to avoid over-smoothing.
-  \item Predict stability class or a ranking score for low $\ehull$.
+\column{.47\textwidth}
+\textbf{Selection-based refinement}
+\begin{itemize}\setlength\itemsep{2mm}
+\item Score completed candidates.
+\item Select examples for generator fine-tuning.
+\item References affect the generator indirectly through training data.
 \end{itemize}
-\column{0.40\textwidth}
-\begin{block}{Why a graph?}
-The model can learn that some phase relations are informative while others are not, and can use reference--reference context.
-\end{block}
-\begin{alertblock}{Controlled comparison}
-Freeze Crys-JEPA embeddings to isolate the effect of graph aggregation under matched supervision.
-\end{alertblock}
+\column{.49\textwidth}
+\textbf{Proposed direct conditioning}
+\begin{itemize}\setlength\itemsep{2mm}
+\item Retrieve references before generation.
+\item Encode them as contextual tokens.
+\item Let the denoiser consult these tokens through cross-attention.
+\end{itemize}
+\end{columns}
+\vspace{4mm}
+The initial scope chooses a target composition before generation. Any improvement over composition-only conditioning must be established experimentally.
+\source{Composable Crystals motivates reusable structural conditioning \cite{liu2026composable}; MatterGen provides diffusion-generation context \cite{MatterGen2025}.}
+\end{frame}
+
+% 10
+\begin{frame}{Reference graph encoder}
+\begin{columns}[c]
+\column{.45\textwidth}\centering
+\graphcell{LayerNorm + Linear\\$R\in\mathbb R^{n\times d_{\mathrm{ref}}}$}
+\column{.53\textwidth}
+\begin{itemize}\setlength\itemsep{3mm}
+\item Input: frozen Crys-JEPA embeddings and composition features for retrieved references.
+\item Typed graph attention contextualizes each crystal using its neighbours.
+\item Output: one vector per reference, $R\in\mathbb R^{n\times d_{\mathrm{ref}}}$; no global pooling.
+\item The generation GNN learns through the denoising loss. Its weights initially differ from the screening GNN's.
+\end{itemize}
+\vspace{2mm}\small Whole-crystal tokens provide compressed context. They do not directly encode transferable local atomic geometries.
 \end{columns}
 \end{frame}
 
-\begin{frame}{Experimental protocol: make the claim falsifiable}
+% 11
+\begin{frame}{Reference cross-attention}
+\begin{columns}[c]
+\column{.35\textwidth}\centering
+\denoisercell
+\column{.63\textwidth}\centering
+\crosscell
+\end{columns}
+\vspace{1mm}\small Candidate states supply queries. Reference tokens supply keys and values. Attention selects reference information and adds it to the candidate state.
+\end{frame}
+
+% 12
+\begin{frame}{Training and inference}
 \begin{columns}[T]
-\column{0.49\textwidth}
-\textbf{Data and splits}
-\begin{itemize}
-  \item Use generated, MatterSim-relaxed candidate structures with a fixed stability-label protocol.
-  \item Build all references from the training split only.
-  \item Hold out related relaxation snapshots together.
-  \item Add formula- or prototype-held-out evaluation for transfer.
-\end{itemize}
-\column{0.49\textwidth}
-\textbf{Matched baselines}
-\begin{enumerate}
-  \item Original Crys-JEPA average-distance score.
-  \item Nearest-neighbour and inverse-distance scores.
-  \item Candidate-only MLP on the same frozen embedding.
-  \item Set model seeing the same retrieved references but no graph topology.
-  \item Proposed GNN.
+\column{.49\textwidth}
+\textbf{Training}
+\begin{enumerate}\setlength\itemsep{2mm}
+\item Choose a labelled training crystal and its composition.
+\item Retrieve references using composition; exclude the target and equivalent duplicates.
+\item Encode the reference subgraph.
+\item Corrupt the training crystal at a sampled diffusion timestep.
+\item Optimize the standard denoising loss through the graph encoder, cross-attention and selected denoiser weights.
+\end{enumerate}
+\column{.49\textwidth}
+\textbf{Inference}
+\begin{enumerate}\setlength\itemsep{2mm}
+\item Specify the requested composition.
+\item Retrieve and encode references once.
+\item Sample from the diffusion prior and denoise with reference conditioning.
+\item Relax the result and apply validity, uniqueness and novelty checks.
+\item Retrieve using the completed structure, screen, and select candidates.
 \end{enumerate}
 \end{columns}
-\vspace{0.5em}
-\begin{alertblock}{Interpretation rule}
-If the set model matches the GNN, the gain comes from retrieval rather than graph structure.
-\end{alertblock}
+\vspace{3mm}\small Retrieval during training must use only information available at inference. Inference does not update weights; selected outputs may support a later refinement round.
 \end{frame}
 
-\begin{frame}{Evaluation and success criteria}
+% 13
+\begin{frame}{Generation evaluation and design choices}
 \begin{columns}[T]
-\column{0.49\textwidth}
-\textbf{Primary metrics}
+\column{.48\textwidth}
+\textbf{Factorial comparison}\par\vspace{2mm}
+\small\begin{tabular}{ll}\toprule
+Generator & Screening \\\midrule
+Baseline & Baseline \\
+Baseline & Proposed \\
+Reference-conditioned & Baseline \\
+Reference-conditioned & Proposed \\\bottomrule
+\end{tabular}
+\vspace{3mm}
 \begin{itemize}
-  \item Precision@top 10\% and top 20\% for stable / near-hull candidates.
-  \item Recall of low-$\ehull$ candidates.
-  \item AUROC or ranking metrics as secondary measures.
-  \item Screening and graph-construction runtime.
+\item Include composition-only conditioning and unordered-reference controls.
+\item Compare relevant and shuffled references; vary reference count.
+\item Match training data, target compositions, sample counts and refinement budgets.
 \end{itemize}
-\column{0.49\textwidth}
-\textbf{Robustness tests}
-\begin{itemize}
-  \item Vary $k$ and relation types.
-  \item Remove irrelevant neighbours.
-  \item Duplicate a reference entry: a robust model should not change materially.
-  \item Test transfer to generated candidates and unfamiliar prototypes.
+\column{.49\textwidth}
+\textbf{Open design choices}
+\begin{itemize}\setlength\itemsep{3mm}
+\item Fix atom identities/counts, or condition atom-type diffusion on composition.
+\item Select graph edges, retrieval budget and graph-encoder depth.
+\item Choose which denoiser weights to fine-tune.
+\item Consider balanced mixture nodes only if initial screening results motivate them.
 \end{itemize}
 \end{columns}
-\vspace{0.6em}
-\begin{block}{Success}
-The GNN consistently beats both the original score \emph{and} an equally informed set baseline on held-out and generated candidates.
-\end{block}
 \end{frame}
 
+% 14
+\begin{frame}{Validation of generated crystals}
+\begin{itemize}\setlength\itemsep{3mm}
+\item \textbf{Before selection:} measure relaxation success, validity, uniqueness, novelty, diversity and chemical coverage over the full sampled pool.
+\item \textbf{After selection:} independently evaluate the same budget from each generator/screener combination using compatible DFT and hull protocols.
+\item \textbf{Discovery yield:} report independently validated stable or near-hull, unique, novel candidates per generated sample, alongside yield per validated candidate.
+\item \textbf{Reference dependence:} measure similarity to retrieved crystals and control near-duplicates across data splits.
+\item \textbf{Cost and failures:} include generation, retrieval, screening and validation overhead; report unsuccessful calculations.
+\end{itemize}
+\vspace{3mm}
+Improvement requires higher independently validated yield, not only greater agreement with the learned screening model.
+\end{frame}
+
+% 15
 \begin{frame}{References}
-\small
+\footnotesize
 \setbeamertemplate{bibliography item}[text]
-\setbeamerfont{bibliography entry author}{size=\small}
-\setbeamerfont{bibliography entry title}{size=\small}
-\setbeamerfont{bibliography entry location}{size=\footnotesize}
-\setbeamerfont{bibliography entry note}{size=\footnotesize}
-\begin{thebibliography}{3}
-\bibitem{liu2026crysjepa}
-Nian Liu et al.
+\setbeamerfont{bibliography entry author}{size=\footnotesize}
+\setbeamerfont{bibliography entry title}{size=\footnotesize}
+\setbeamerfont{bibliography entry location}{size=\scriptsize}
+\setbeamerfont{bibliography entry note}{size=\scriptsize}
+\begin{thebibliography}{4}
+\bibitem{liu2026crysjepa} Nian Liu et al.
 \newblock Crys-JEPA: Accelerating Crystal Discovery via Embedding Screening and Generative Refinement.
-\newblock arXiv preprint, 2026.
-\newblock \href{https://arxiv.org/abs/2605.14759}{arXiv:2605.14759}
-\vspace{0.5em}
-\bibitem{MatterGen2025}
-Claudio Zeni et al.
+\newblock 2026. \href{https://arxiv.org/abs/2605.14759}{arXiv:2605.14759}.
+\bibitem{liu2026composable} Nian Liu et al.
+\newblock Composable Crystals: Controllable Materials Discovery via Concept Learning.
+\newblock 2026. \href{https://arxiv.org/abs/2605.14769}{arXiv:2605.14769}.
+\bibitem{MatterGen2025} Claudio Zeni et al.
 \newblock A generative model for inorganic materials design.
-\newblock \emph{Nature}, 2025.
-\newblock \href{https://doi.org/10.1038/s41586-025-08628-5}{doi:10.1038/s41586-025-08628-5}
-\vspace{0.5em}
-\bibitem{yang2024mattersim}
-Han Yang et al.
+\newblock \emph{Nature}, 2025. \href{https://doi.org/10.1038/s41586-025-08628-5}{doi:10.1038/s41586-025-08628-5}.
+\bibitem{yang2024mattersim} Han Yang et al.
 \newblock MatterSim: A Deep Learning Atomistic Model Across Elements, Temperatures and Pressures.
-\newblock arXiv preprint arXiv:2405.04967, 2024.
-\newblock \href{https://arxiv.org/abs/2405.04967}{arXiv:2405.04967}
+\newblock 2024. \href{https://arxiv.org/abs/2405.04967}{arXiv:2405.04967}.
 \end{thebibliography}
 \end{frame}
 
+% 16
+\begin{frame}
+\centering\Huge\color{navy} Questions?
+\end{frame}
 \end{document}

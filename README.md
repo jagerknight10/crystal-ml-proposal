@@ -11,6 +11,8 @@ Edit the LaTeX source and compile it to produce a presentation PDF. The instruct
 | [`idea-presentation.tex`](idea-presentation.tex) | Editable slide source, including diagrams and references |
 | [`idea-presentation.pdf`](idea-presentation.pdf) | Rendered slides, ready to present or share |
 | [`Makefile`](Makefile) | Optional shortcuts for building and watching the source |
+| [`diagrams/slide-architectures.tex`](diagrams/slide-architectures.tex) | Slide-sized TikZ architectures included by the presentation |
+| [`diagrams/`](diagrams/) | Standalone diagram sources, vector PDFs, and PNG previews |
 
 The output is a widescreen Beamer PDF. This project does not currently generate an editable PowerPoint `.pptx` file.
 
@@ -168,7 +170,7 @@ The references are self-contained in the `thebibliography` environment at the en
 \cite{yang2024mattersim}
 ```
 
-No external `.bib` file or BibTeX step is required for this deck. When adding a reference, create a matching `\bibitem{key}` in the bibliography and use `\cite{key}` on the relevant slide.
+No external `.bib` file or BibTeX step is required for this deck. Keep `diagrams/slide-architectures.tex` alongside the main source at its existing relative path when sharing or building the presentation. When adding a reference, create a matching `\bibitem{key}` in the bibliography and use `\cite{key}` on the relevant slide.
 
 ## Troubleshooting
 
