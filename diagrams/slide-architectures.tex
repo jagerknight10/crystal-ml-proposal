@@ -1,0 +1,109 @@
+% Slide-sized versions of the standalone TikZ architectures.
+% Text stays at slide font sizes rather than scaling a full-page figure.
+\tikzset{cell/.style={draw=navy,rounded corners=.7mm,align=center,font=\small,inner sep=1mm,minimum height=4mm},plus/.style={circle,draw=navy,minimum size=2.5mm,inner sep=0pt},wire/.style={-{Stealth[length=1mm]},line width=.45pt,draw=navy}}
+\newcommand{\graphcell}[1]{%
+\begin{tikzpicture}
+\node[font=\small] (input) at (0,0) {$X=[h_i;c_i]$};
+\node[cell,fill=linear] (lin) at (0,.5) {Linear};
+\draw[navy,rounded corners=3mm] (-1.5,.72) rectangle (1.5,4.48);
+\node[font=\scriptsize,anchor=east] at (1.4,4.29) {$\times L$};
+\node[cell,fill=norm] (n1) at (0,1.15) {LayerNorm};
+\node[cell,fill=attn] (att) at (0,1.82) {Typed graph\\attention};
+\node[plus] (p1) at (0,2.4) {};
+\node[cell,fill=norm] (n2) at (0,2.87) {LayerNorm};
+\node[cell,fill=ffn] (ff) at (0,3.4) {Feed-forward};
+\node[plus] (p2) at (0,3.95) {};
+\foreach \p in {p1,p2}{\draw[navy] (\p.north)--(\p.south) (\p.west)--(\p.east);}
+\foreach \a/\b in {input/lin,lin/n1,n1/att,att/p1,p1/n2,n2/ff,ff/p2}{\draw[wire] (\a)--(\b);}
+\draw[wire] (0,.82)--(1.27,.82)|-(p1.east);
+\draw[wire] (0,2.62)--(-1.27,2.62)|-(p2.west);
+\node[font=\scriptsize,align=right] (edge) at (-2.04,1.82) {Typed\\edges};
+\draw[wire] (edge.east)--(att.west);
+\node[cell,fill=linear!60] (out) at (0,4.97) {#1};
+\draw[wire] (p2)--(out);
+\end{tikzpicture}}
+
+\newcommand{\denoisercell}{%
+\begin{tikzpicture}
+\node[font=\small] (in) at (0,0) {$H_t$};
+\draw[navy,rounded corners=3mm] (-1.38,.3) rectangle (1.38,4.92);
+\node[cell,fill=norm] (n1) at (0,.65) {LayerNorm};
+\node[cell,fill=attn] (sa) at (0,1.2) {Self-attention};
+\node[plus] (p1) at (0,1.72) {};
+\node[cell,fill=norm] (n2) at (0,2.15) {LayerNorm};
+\node[cell,fill=attn] (ca) at (0,2.7) {Cross-attention};
+\node[plus] (p2) at (0,3.22) {};
+\node[cell,fill=norm] (n3) at (0,3.65) {LayerNorm};
+\node[cell,fill=ffn] (ff) at (0,4.15) {Feed-forward};
+\node[plus] (p3) at (0,4.66) {};
+\node[font=\small] (out) at (0,5.3) {Prediction heads};
+\foreach \p in {p1,p2,p3}{\draw[navy] (\p.north)--(\p.south) (\p.west)--(\p.east);}
+\foreach \a/\b in {in/n1,n1/sa,sa/p1,p1/n2,n2/ca,ca/p2,p2/n3,n3/ff,ff/p3,p3/out}{\draw[wire] (\a)--(\b);}
+\draw[wire] (0,.4)--(-1.2,.4)|-(p1.west);
+\draw[wire] (0,1.92)--(1.2,1.92)|-(p2.east);
+\draw[wire] (0,3.42)--(-1.2,3.42)|-(p3.west);
+\node[font=\small] (r) at (2.05,2.7) {$R$};\draw[wire] (r)--(ca);
+\end{tikzpicture}}
+
+\newcommand{\crosscell}{%
+\begin{tikzpicture}
+\node[font=\small] (u) at (0,0) {$\bar U_t$};
+\node[font=\small] (r) at (4,0) {$R$};
+\node[cell,fill=linear] (q) at (0,.65) {$Q=\bar U_tW_Q$};
+\node[cell,fill=analog!65] (k) at (2.65,.65) {$K=RW_K$};
+\node[cell,fill=analog!65] (v) at (5.05,.65) {$V=RW_V$};
+\draw[wire] (u)--(q);\draw[wire] (r)--(4,.3)-|(k.south);\draw[wire] (4,.3)-|(v.south);
+\node[cell,fill=attn] (score) at (1.35,1.65) {$S=QK^\top/\sqrt{d_k}$};
+\draw[wire] (q.north)--(0,1.15)-|(score.south west);
+\draw[wire] (k.north)--(2.65,1.15)-|(score.south east);
+\node[cell,fill=norm] (soft) at (1.35,2.5) {$A=\mathrm{softmax}(S)$};
+\node[font=\scriptsize,align=left,anchor=west] at (3.15,2.5) {Over references\\$A\in\mathbb R^{N\times n}$};
+\node[cell,fill=attn] (o) at (1.35,3.35) {$O=AV$};
+\node[cell,fill=ffn] (mix) at (1.35,4.2) {Concatenate heads + $W_O$};
+\node[plus] (sum) at (1.35,4.85) {};
+\draw[navy] (sum.north)--(sum.south) (sum.west)--(sum.east);
+\node[font=\small] (skip) at (4.35,4.85) {$U_t$};
+\node[font=\small] (out) at (1.35,5.45) {$U'_t$};
+\foreach \a/\b in {score/soft,soft/o,o/mix,mix/sum,sum/out}{\draw[wire] (\a)--(\b);}
+\draw[wire] (v.north)--(5.05,3.35)--(o.east);
+\draw[wire] (skip)--(sum);
+\end{tikzpicture}}
+
+\newcommand{\referencegraph}{%
+\begin{tikzpicture}[font=\small]
+\node at (2,3.8) {Query composition: $AB_2$};
+\node[cell,fill=comp!65,minimum width=8mm] (a) at (.4,3.05) {$A$};
+\node[cell,fill=comp!65,minimum width=8mm] (ab) at (3.6,3.05) {$AB$};
+\node[cell,fill=comp!65,minimum width=8mm] (b) at (.4,1.85) {$B$};
+\node[cell,fill=comp!65,minimum width=8mm] (ab2) at (3.6,1.85) {$AB_2$};
+\node[cell,fill=analog!65,minimum width=8mm] (ac) at (.4,.65) {$AC_2$};
+\node[cell,fill=analog!65,minimum width=8mm] (de) at (3.6,.65) {$DE_2$};
+\draw[navy] (a)--(ab)--(ab2)--(b)--(a);
+\draw[dashed,violet] (ab2)--(ac);\draw[dashed,violet] (ab2)--(de);
+\draw[dotted,navy] (ac)--(de);
+\node at (2,-.1) {Each node is a whole crystal};
+\end{tikzpicture}}
+
+% Screening graph transformer with a separate candidate readout and regression head.
+\newcommand{\screeningtransformer}{%
+\begin{tikzpicture}
+\node[font=\small] (input) at (0,0) {$X=[h_i;c_i]$};
+\node[cell,fill=linear] (lin) at (0,.45) {Linear};
+\draw[navy,rounded corners=3mm] (-1.5,.72) rectangle (1.5,3.94);
+\node[font=\scriptsize,anchor=east] at (1.4,3.78) {$\times L$};
+\node[cell,fill=norm] (n1) at (0,1.0) {LayerNorm};
+\node[cell,fill=attn] (att) at (0,1.6) {Multi-head\\graph attention};
+\node[plus] (p1) at (0,2.16) {};
+\node[cell,fill=norm] (n2) at (0,2.56) {LayerNorm};
+\node[cell,fill=ffn] (ff) at (0,3.06) {Feed-forward};
+\node[plus] (p2) at (0,3.58) {};
+\foreach \p in {p1,p2}{\draw[navy] (\p.north)--(\p.south) (\p.west)--(\p.east);}
+\foreach \a/\b in {input/lin,lin/n1,n1/att,att/p1,p1/n2,n2/ff,ff/p2}{\draw[wire] (\a)--(\b);}
+\draw[wire] (0,.74)--(1.27,.74)|-(p1.east);
+\draw[wire] (0,2.34)--(-1.27,2.34)|-(p2.west);
+\node[font=\scriptsize,align=right] (edge) at (-2.04,1.6) {Typed\\edges};
+\draw[wire] (edge.east)--(att.west);
+\node[cell,fill=linear!60] (readout) at (0,4.32) {Select candidate $z_c^{(L)}$};
+\node[cell,fill=ffn] (head) at (0,5.0) {MLP regression head};
+\draw[wire] (p2)--(readout);\draw[wire] (readout)--(head);
+\end{tikzpicture}}
