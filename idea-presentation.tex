@@ -85,13 +85,13 @@ The ranking score is the mean squared distance in Crys-JEPA embedding space:
 % 4
 \begin{frame}{Limitations of the reference pool}
 \begin{itemize}\setlength\itemsep{4mm}
-\item \textbf{Chemical-system restriction.} The original pool excludes outside-system crystals that may contain transferable structural or chemical information.
-\item \textbf{Unequal information, equal weights.} References can differ in relevance and redundancy, but the score assigns equal weight to each.
-\item \textbf{Ignores decomposition routes.} An $AB_2$ candidate can fall to a balanced mix like $AB+B$; averaging individual distances may not directly score this joint competition.
-\item \textbf{Reference-set dependence.} Adding references changes both the centroid and spread of their embeddings, and therefore the average-distance score.
+\item \textbf{Chemical-system restriction:} The original pool excludes outside-system crystals that may contain transferable structural or chemical information.
+\item \textbf{Unequal information, equal weights:} References can differ in relevance and redundancy, but the score assigns equal weight to each.
+\item \textbf{Ignores decomposition routes:} An $AB_2$ candidate can fall to a balanced mix like $AB+B$; averaging individual distances may not directly score this joint competition.
+\item \textbf{Reference-set dependence:} The search pool is fixed, and the score is sensitive to the number of references.
 \end{itemize}
 \vspace{3mm}
-These observations motivate experiments. We are claiming theoretically that this can be improved.
+These observations motivate experiments.
 \end{frame}
 
 % 5
@@ -102,37 +102,36 @@ These observations motivate experiments. We are claiming theoretically that this
 \referencegraph
 \column{.49\textwidth}
 \begin{itemize}\setlength\itemsep{3mm}
-\item \textbf{Competition references:} crystals using the candidate's elements.
-\item \textbf{Cross-chemistry analogues:} crystals with relevant structural or chemical similarities.
-\item Build a broad search pool using chemical seeds, similarity search and graph expansion; attach the candidate as a query node.
+\item Build a broader search pool by considering crystals with structural or chemical similarity. Can be done via a KNN graph in embedding space H.
 \item For each candidate, learn the references that matter the most, and their ranked order of relevance.
 \end{itemize}
 \vspace{2mm}
 {\footnotesize\textit{Example.} For $AB_2$: $AB$, $B$ rank high (true competitors); $AC_2$, $DE_2$ rank low (context only) $\rightarrow$ keep top-$k$.}
 \end{columns}
-\vspace{3mm}
-Analogues supply predictive context. They cannot be decomposition products when they introduce elements absent from the candidate.
+% \vspace{3mm}
+% Analogues supply predictive context. They cannot be decomposition products when they introduce elements absent from the candidate.
 \end{frame}
 
 % 6
-\begin{frame}{Learning which reference crystals to select}
-\begin{columns}[c]
-\column{.37\textwidth}\centering
-\screeningtransformer
-\column{.60\textwidth}
-\textbf{Candidate-conditioned reference selection}
-\begin{itemize}\setlength\itemsep{0.5mm}
-\item \textbf{Broad search pool:} collect candidate reference crystals by composition, similarity and graph expansion (from the allowed database).
-\item \textbf{Contextualise:} a graph transformer updates the candidate $c$ and references $r$ into contextual states $z_c,z_r$ through their typed relationships.
-\item \textbf{Score:} a pairwise head rates each reference's relevance $s(c,r)$ to the candidate.
-\item \textbf{Select:} rank references by relevance and keep the top $k$.
-\end{itemize}
-\par\vspace{1mm}
-\small Reference relevance is distinct from candidate stability. A separate downstream comparison uses the selected references to rank candidates.
-\par\vspace{1mm}
-\small\textbf{Open choice:} how to train reference relevance. One option is supervision through a downstream screening objective, rather than assumed ``correct reference'' labels.
-\end{columns}
-\end{frame}
+% not relevant to the discussion
+% \begin{frame}{Learning which reference crystals to select}
+% \begin{columns}[c]
+% \column{.37\textwidth}\centering
+% \screeningtransformer
+% \column{.60\textwidth}
+% \textbf{Candidate-conditioned reference selection}
+% \begin{itemize}\setlength\itemsep{0.5mm}
+% \item \textbf{Broad search pool:} collect candidate reference crystals by composition, similarity and graph expansion (from the allowed database).
+% \item \textbf{Contextualise:} a graph transformer updates the candidate $c$ and references $r$ into contextual states $z_c,z_r$ through their typed relationships.
+% \item \textbf{Score:} a pairwise head rates each reference's relevance $s(c,r)$ to the candidate.
+% \item \textbf{Select:} rank references by relevance and keep the top $k$.
+% \end{itemize}
+% \par\vspace{1mm}
+% \small Reference relevance is distinct from candidate stability. A separate downstream comparison uses the selected references to rank candidates.
+% \par\vspace{1mm}
+% \small\textbf{Open choice:} how to train reference relevance. One option is supervision through a downstream screening objective, rather than assumed ``correct reference'' labels.
+% \end{columns}
+% \end{frame}
 
 % 7
 \begin{frame}{Experiments: does learned reference selection improve screening?}
@@ -140,39 +139,39 @@ Analogues supply predictive context. They cannot be decomposition products when 
 \begin{tabular}{>{\raggedright\arraybackslash}p{.43\textwidth}>{\raggedright\arraybackslash}p{.49\textwidth}}
 \toprule
 Comparison & Question \\\midrule
-Original restricted references vs. enriched search pool & Does access to outside-system analogues help? \\[2mm]
-Equal-weight references (fixed rule) vs. learned relevance ranking & From the same pool, does learning \emph{which} references matter beat weighting all of them equally? \\[2mm]
-Pairwise / set-based selector vs. graph transformer & Do the typed relationships add anything, given the same inputs? \\[2mm]
-Relevant vs. shuffled references; vary $k$ & Does reference content matter beyond the information budget? \\[2mm]
+Original restricted references vs. enriched search pool & Does access to outside-system analogues help? \\[4mm]
+Equal-weight references (fixed rule) vs. learned relevance ranking & From the same pool, does learning \emph{which} references matter beat weighting all of them equally? \\[4mm]
+% Pairwise / set-based selector vs. graph transformer & Do the typed relationships add anything, given the same inputs? \\[2mm]
+% Relevant vs. shuffled references; vary $k$ & Does reference content matter beyond the information budget? \\[2mm]
 Original candidate score; candidate-only predictor; energy predictor + hull & Does the complete method improve candidate screening over simpler alternatives? \\\bottomrule
 \end{tabular}
-\vspace{3mm}
-\begin{itemize}
-\item Hold the downstream candidate scorer fixed when comparing reference selectors.
-\item Match search pools, reference budgets, features and supervision for selector comparisons.
-\item Evaluate usefulness through independently validated candidate yield; high relevance scores alone are not evidence of better references.
-\end{itemize}
+% \vspace{3mm}
+% \begin{itemize}
+% \item Hold the downstream candidate scorer fixed when comparing reference selectors.
+% \item Match search pools, reference budgets, features and supervision for selector comparisons.
+% \item Evaluate usefulness through independently validated candidate yield; high relevance scores alone are not evidence of better references.
+% \end{itemize}
 \end{frame}
 
 % 8
-\begin{frame}{Screening validation}
-\centering
-\begin{tikzpicture}
-\node[stage,fill=attn,text width=26mm] (pool) at (0,0) {Fixed\\candidate pool};
-\node[stage,fill=ffn,text width=26mm] (rank) at (3.6,0) {Both the screening methods\\method};
-\node[stage,fill=linear,text width=26mm] (budget) at (7.2,0) {Same selection\\budget $B$};
-\node[stage,fill=norm,text width=26mm] (dft) at (10.8,0) {Independent\\DFT evaluation};
-\draw[arr] (pool)--(rank);\draw[arr] (rank)--(budget);\draw[arr] (budget)--(dft);
-\end{tikzpicture}
-\vspace{5mm}
-\begin{itemize}\setlength\itemsep{3mm}
-\item Primary outcome: number and fraction of selected candidates below a predefined $\ehull$ threshold.
-\item Use compatible energy methods and corrections, and sufficient competition coverage for hull evaluation.
-\item If only a subset receives DFT, use the same prespecified sampling procedure for each method.
-\item Report failed relaxations and calculations. Keep learned selection scores separate from final validation labels.
-\end{itemize}
-\vspace{2mm}
-\end{frame}
+% \begin{frame}{Screening validation}
+% \centering
+% \begin{tikzpicture}
+% \node[stage,fill=attn,text width=26mm] (pool) at (0,0) {Fixed\\candidate pool};
+% \node[stage,fill=ffn,text width=26mm] (rank) at (3.6,0) {Both the screening methods\\method};
+% \node[stage,fill=linear,text width=26mm] (budget) at (7.2,0) {Same selection\\budget $B$};
+% \node[stage,fill=norm,text width=26mm] (dft) at (10.8,0) {Independent\\DFT evaluation};
+% \draw[arr] (pool)--(rank);\draw[arr] (rank)--(budget);\draw[arr] (budget)--(dft);
+% \end{tikzpicture}
+% \vspace{5mm}
+% \begin{itemize}\setlength\itemsep{3mm}
+% \item Primary outcome: number and fraction of selected candidates below a predefined $\ehull$ threshold.
+% \item Use compatible energy methods and corrections, and sufficient competition coverage for hull evaluation.
+% \item If only a subset receives DFT, use the same prespecified sampling procedure for each method.
+% \item Report failed relaxations and calculations. Keep learned selection scores separate from final validation labels.
+% \end{itemize}
+% \vspace{2mm}
+% \end{frame}
 
 % 9
 \begin{frame}{Using reference context during generation}
