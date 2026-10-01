@@ -122,10 +122,10 @@ Analogues supply predictive context. They cannot be decomposition products when 
 \column{.60\textwidth}
 \textbf{Candidate-conditioned reference selection}
 \begin{itemize}\setlength\itemsep{0.5mm}
-\item Use composition, structural similarity and graph expansion to form a broad search pool from the permitted database.
-\item A graph transformer produces contextual candidate and reference states $z_c,z_r$ using typed relationships.
-\item A pairwise head assigns a relevance score $s(c,r)$ to each potential reference $r$ for candidate $c$.
-\item \textbf{Output: ranked reference crystals and their relevance scores}, followed by selection under a reference budget $k$.
+\item \textbf{Broad search pool:} collect candidate reference crystals by composition, similarity and graph expansion (from the allowed database).
+\item \textbf{Contextualise:} a graph transformer updates the candidate $c$ and references $r$ into contextual states $z_c,z_r$ through their typed relationships.
+\item \textbf{Score:} a pairwise head rates each reference's relevance $s(c,r)$ to the candidate.
+\item \textbf{Select:} rank references by relevance and keep the top $k$.
 \end{itemize}
 \par\vspace{1mm}
 \small Reference relevance is distinct from candidate stability. A separate downstream comparison uses the selected references to rank candidates.
