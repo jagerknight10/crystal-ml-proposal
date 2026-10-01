@@ -135,14 +135,14 @@ Analogues supply predictive context. They cannot be decomposition products when 
 \end{frame}
 
 % 7
-\begin{frame}{Reference selection and screening evaluation}
+\begin{frame}{Experiments: does learned reference selection improve screening?}
 \small
 \begin{tabular}{>{\raggedright\arraybackslash}p{.43\textwidth}>{\raggedright\arraybackslash}p{.49\textwidth}}
 \toprule
 Comparison & Question \\\midrule
 Original restricted references vs. enriched search pool & Does access to outside-system analogues help? \\[2mm]
-Fixed retrieval vs. learned reference ranking & Does learning select more useful references from the same search pool? \\[2mm]
-Pairwise / set-based selector vs. graph transformer & Do relationships improve selection beyond the same available features? \\[2mm]
+Equal-weight references (fixed rule) vs. learned relevance ranking & From the same pool, does learning \emph{which} references matter beat weighting all of them equally? \\[2mm]
+Pairwise / set-based selector vs. graph transformer & Do the typed relationships add anything, given the same inputs? \\[2mm]
 Relevant vs. shuffled references; vary $k$ & Does reference content matter beyond the information budget? \\[2mm]
 Original candidate score; candidate-only predictor; energy predictor + hull & Does the complete method improve candidate screening over simpler alternatives? \\\bottomrule
 \end{tabular}
