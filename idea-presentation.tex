@@ -105,8 +105,10 @@ These observations motivate experiments. We are claiming theoretically that this
 \item \textbf{Competition references:} crystals using the candidate's elements.
 \item \textbf{Cross-chemistry analogues:} crystals with relevant structural or chemical similarities.
 \item Build a broad search pool using chemical seeds, similarity search and graph expansion; attach the candidate as a query node.
-\item Learn candidate-specific reference relevance, then return ranked reference crystals with scores.
+\item For each candidate, learn the references that matter the most, and their ranked order of relevance.
 \end{itemize}
+\vspace{2mm}
+{\footnotesize\textit{Example.} For $AB_2$: $AB$, $B$ rank high (true competitors); $AC_2$, $DE_2$ rank low (context only) $\rightarrow$ keep top-$k$.}
 \end{columns}
 \vspace{3mm}
 Analogues supply predictive context. They cannot be decomposition products when they introduce elements absent from the candidate.
