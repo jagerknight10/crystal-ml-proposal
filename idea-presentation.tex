@@ -87,7 +87,7 @@ The ranking score is the mean squared distance in Crys-JEPA embedding space:
 \begin{itemize}\setlength\itemsep{4mm}
 \item \textbf{Chemical-system restriction.} The original pool excludes outside-system crystals that may contain transferable structural or chemical information.
 \item \textbf{Unequal information, equal weights.} References can differ in relevance and redundancy, but the score assigns equal weight to each.
-\item \textbf{No explicit joint competition.} Pairwise distances do not directly represent composition-balanced alternatives such as $AB+B$ for $AB_2$.
+\item \textbf{Ignores decomposition routes.} An $AB_2$ candidate can fall to a balanced mix like $AB+B$; averaging individual distances may not directly score this joint competition.
 \item \textbf{Reference-set dependence.} Adding references changes both the centroid and spread of their embeddings, and therefore the average-distance score.
 \end{itemize}
 \vspace{3mm}
