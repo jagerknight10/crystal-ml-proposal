@@ -194,7 +194,7 @@ The same reference database graph may also inform how a candidate is constructed
 \end{itemize}
 \end{columns}
 \vspace{4mm}
-The initial scope chooses a target composition before generation. Any improvement over composition-only conditioning must be established experimentally.
+The initial scope chooses a target composition before generation. Any improvement over composition alone, such as conditioning on desired properties could also be studied.
 \source{Composable Crystals motivates reusable structural conditioning \cite{liu2026composable}; MatterGen provides diffusion-generation context \cite{MatterGen2025}.}
 \end{frame}
 
@@ -204,14 +204,15 @@ The initial scope chooses a target composition before generation. Any improvemen
 \column{.45\textwidth}\centering
 \graphcell{LayerNorm + Linear\\$R\in\mathbb R^{n\times d_{\mathrm{ref}}}$}
 \column{.53\textwidth}
-\begin{itemize}\setlength\itemsep{3mm}
+\begin{itemize}\setlength\itemsep{2mm}
 \item Input: frozen Crys-JEPA embeddings and composition features for retrieved references.
 \item Typed graph attention contextualizes each crystal using its neighbours.
 \item Output: one vector per reference, $R\in\mathbb R^{n\times d_{\mathrm{ref}}}$; no global pooling.
-\item The generation GNN learns through the denoising loss. Its weights initially differ from the screening GNN's.
+\item We propose to train cross-attention through the denoising loss to learn which reference information helps reconstruct the candidate.
 \end{itemize}
-\vspace{2mm}\small Whole-crystal tokens provide compressed context. They do not directly encode transferable local atomic geometries.
+% \vspace{2mm}\small Each context vector summarises one reference crystal. Attention weights can vary with the candidate and denoising step; specialization by physical property is not assumed.
 \end{columns}
+\source{Representation-learning motivation: I-JEPA predicts target representations rather than pixels \cite{assran2023ijepa}.}
 \end{frame}
 
 % 11
@@ -225,13 +226,33 @@ The initial scope chooses a target composition before generation. Any improvemen
 \vspace{1mm}\small Candidate states supply queries. Reference tokens supply keys and values. Attention selects reference information and adds it to the candidate state.
 \end{frame}
 
+\begin{frame}{Why reference information may help}
+\small
+Useful references may help predict the added noise. Under squared-error training, the optimal predictions satisfy
+\[
+ f_0=\mathbb E[\epsilon\mid x_t,t,c],\qquad
+ f_R=\mathbb E[\epsilon\mid x_t,t,c,R],\qquad
+ \mathbb E\|\epsilon-f_R\|^2\leq\mathbb E\|\epsilon-f_0\|^2.
+\]
+{\footnotesize $\epsilon$: added noise; $x_t$: noisy crystal; $t$: noise step; $c$: composition; $R$: reference information.}
+\vspace{2mm}
+\begin{itemize}\setlength\itemsep{1.5mm}
+\item Extra information cannot worsen the optimal prediction.
+\item Reference crystals give the model examples of known structures. We must test whether these examples improve the generated crystals.
+\item Retrieve competing phases and similar crystals from other chemistries; test how many to use on validation data.
+\item Attention learns each reference's influence from prediction errors; this varies by crystal part, attention head and noise step.
+\end{itemize}
+\vspace{2mm}
+% {\footnotesize\textbf{Test:} compare no references, the same references without the graph, and randomly reassigned references. Measure independently validated stable, novel crystals. Lower prediction error guarantees neither stability nor novelty.}
+\end{frame}
+
 % 12
 \begin{frame}{Training and inference}
 \begin{columns}[T]
 \column{.49\textwidth}
 \textbf{Training}
-\begin{enumerate}\setlength\itemsep{2mm}
-\item Choose a labelled training crystal and its composition.
+\begin{enumerate}\setlength\itemsep{1.5mm}
+\item Choose a crystal and its composition from the \textbf{MP-20 training split} \cite{xie2022cdvae}, following Crys-JEPA \cite{liu2026crysjepa}.
 \item Retrieve references using composition; exclude the target and equivalent duplicates.
 \item Encode the reference subgraph.
 \item Corrupt the training crystal at a sampled diffusion timestep.
@@ -239,7 +260,7 @@ The initial scope chooses a target composition before generation. Any improvemen
 \end{enumerate}
 \column{.49\textwidth}
 \textbf{Inference}
-\begin{enumerate}\setlength\itemsep{2mm}
+\begin{enumerate}\setlength\itemsep{1.5mm}
 \item Specify the requested composition.
 \item Retrieve and encode references once.
 \item Sample from the diffusion prior and denoise with reference conditioning.
@@ -263,11 +284,6 @@ Reference-conditioned & Baseline \\
 Reference-conditioned & Proposed \\\bottomrule
 \end{tabular}
 \vspace{3mm}
-\begin{itemize}
-\item Include composition-only conditioning and unordered-reference controls.
-\item Compare relevant and shuffled references; vary reference count.
-\item Match training data, target compositions, sample counts and refinement budgets.
-\end{itemize}
 \column{.49\textwidth}
 \textbf{Open design choices}
 \begin{itemize}\setlength\itemsep{3mm}
@@ -289,7 +305,6 @@ Reference-conditioned & Proposed \\\bottomrule
 \item \textbf{Cost and failures:} include generation, retrieval, screening and validation overhead; report unsuccessful calculations.
 \end{itemize}
 \vspace{3mm}
-Improvement requires higher independently validated yield, not only greater agreement with the learned screening model.
 \end{frame}
 
 % 15
@@ -300,7 +315,7 @@ Improvement requires higher independently validated yield, not only greater agre
 \setbeamerfont{bibliography entry title}{size=\footnotesize}
 \setbeamerfont{bibliography entry location}{size=\scriptsize}
 \setbeamerfont{bibliography entry note}{size=\scriptsize}
-\begin{thebibliography}{4}
+\begin{thebibliography}{6}
 \bibitem{liu2026crysjepa} Nian Liu et al.
 \newblock Crys-JEPA: Accelerating Crystal Discovery via Embedding Screening and Generative Refinement.
 \newblock 2026. \href{https://arxiv.org/abs/2605.14759}{arXiv:2605.14759}.
@@ -313,6 +328,12 @@ Improvement requires higher independently validated yield, not only greater agre
 \bibitem{yang2024mattersim} Han Yang et al.
 \newblock MatterSim: A Deep Learning Atomistic Model Across Elements, Temperatures and Pressures.
 \newblock 2024. \href{https://arxiv.org/abs/2405.04967}{arXiv:2405.04967}.
+\bibitem{assran2023ijepa} Mahmoud Assran et al.
+\newblock Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture.
+\newblock CVPR, 2023. \href{https://arxiv.org/abs/2301.08243}{arXiv:2301.08243}.
+\bibitem{xie2022cdvae} Tian Xie et al.
+\newblock Crystal Diffusion Variational Autoencoder for Periodic Material Generation.
+\newblock ICLR, 2022. \href{https://arxiv.org/abs/2110.06197}{arXiv:2110.06197}. Dataset: \href{https://github.com/txie-93/cdvae/tree/main/data/mp_20}{MP-20 (structures and standard splits)}.
 \end{thebibliography}
 \end{frame}
 
