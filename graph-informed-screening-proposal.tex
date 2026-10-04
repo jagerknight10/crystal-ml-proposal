@@ -37,7 +37,7 @@
   {\color{navy}\bfseries\fontsize{16.2}{18}\selectfont
   Graph-Informed Screening for Stable and Novel Crystal Generation}\par
   \vspace{2.5pt}
-  {\large{Aditi Sankaranarayanan, Aditya Gupta, Anirudh Narayanan, Atharva Kumbhar}}
+  {\large{Aditi Sankaranarayanan, Aditya Gupta, Anirudh T N, Atharva Kumbhar}}
 \end{center}
 
 \smallskip
@@ -53,7 +53,7 @@ Crys-JEPA addresses this bottleneck through an energy-aware embedding space $H$ 
 \[
   D_C = \frac{1}{|R(C)|} \sum_{r \in R(C)} \lVert h_C-h_r \rVert_2^2
 \]
-The candidates with the lowest scores are fed back to fine-tune the generator~\cite{liu2026crysjepa}. This is an effective DFT-free screening signal, but its reference pool has four limitations: it excludes potentially transferable outside-system analogues, it weights references equally despite unequal relevance and redundancy, it does not explicitly represent joint decomposition routes such as $AB+B$ for an $AB_2$ candidate, and its score depends on the size and composition of a fixed reference set.
+The candidates with the lowest scores are fed back to fine-tune the generator~\cite{liu2026crysjepa}. This is an effective DFT-free screening signal, but its reference pool has four limitations: (i) it excludes potentially transferable outside-system analogues, (ii) it weights references equally despite unequal relevance and redundancy, (iii) it does not explicitly represent joint decomposition routes such as $AB+B$ for an $AB_2$ candidate, and (iv) its score depends on the size and composition of a fixed reference set.
 
 \section*{Proposed Solution}
 \sectionrule
