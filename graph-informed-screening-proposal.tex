@@ -21,7 +21,7 @@
 
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{2.2pt}
+\setlength{\parskip}{4pt}
 \setlist[itemize]{leftmargin=4.3mm,itemsep=0.7pt,topsep=1.4pt,parsep=0pt}
 \setlist[enumerate]{leftmargin=5.2mm,itemsep=0.7pt,topsep=1.4pt,parsep=0pt}
 \titleformat{\section}{\color{navy}\bfseries\fontsize{10.8}{12}\selectfont}{}{0pt}{}
@@ -36,78 +36,50 @@
 \begin{center}
   {\color{navy}\bfseries\fontsize{16.2}{18}\selectfont
   Graph-Informed Screening for Stable and Novel Crystal Generation}\par
-  \vspace{1.5pt}
-  {\color{muted}\small Project Proposal}
+  \vspace{2.5pt}
+  {\large{Aditi Sankaranarayanan, Aditya Gupta, Anirudh Narayanan, Atharva Kumbhar}}
 \end{center}
-\vspace{-3pt}
 
-\section*{Project Motivation}
+\smallskip
+\section*{Motivation}
 \sectionrule
-The discovery of crystals with desirable physical properties enables advances in catalysis,
-semiconductors, solar cells, batteries, and related technologies. De novo crystal generation seeks
-to create entirely new structures using deep generative models, but evaluating the resulting search
-space remains a bottleneck. Thermodynamic stability is most reliably assessed through formation-energy
-comparisons and density functional theory (DFT), whose cost makes exhaustive evaluation of generated
-crystals impractical. Generative models are therefore commonly judged using validity, stability,
-uniqueness, and novelty (\vsun). High screening precision is essential: expensive validation should be
-spent on candidates that are likely to be stable without collapsing generation toward already known
-materials. Crys-JEPA shows that current models exhibit precisely this stability-novelty trade-off:
-training toward dense, stable regions can reduce novelty, while moving away from known structures can
-rapidly reduce stability~\cite{liu2026crysjepa}.
+The discovery of crystals with desirable physical properties enables advances in catalysis, semiconductors, solar cells, batteries, and related technologies. De novo crystal generation seeks to create entirely new structures using deep generative models, but evaluating the resulting search space remains a bottleneck. Thermodynamic stability is most reliably assessed through formation-energy comparisons and density functional theory (DFT), whose cost makes exhaustive evaluation of generated crystals impractical. Generative models are therefore commonly judged using validity, stability, uniqueness, and novelty (\vsun).
 
-\section*{Project Description}
+High screening precision is essential, but expensive validation should only be spent on candidates that are likely to be stable. At the same time, we also need to prevent the generation of already known materials from dominating the search space. Crys-JEPA shows that current models exhibit precisely this stability-novelty trade-off: training toward dense, stable regions can reduce novelty, while moving away from known structures can rapidly reduce stability~\cite{liu2026crysjepa}.
+
+\section*{Background}
 \sectionrule
-Crys-JEPA addresses this bottleneck through an energy-aware embedding space in which crystals with
-similar formation energies tend to lie close together. Its refinement pipeline (i) pre-trains a generator
-on MP-20~\cite{xie2022cdvae}, (ii) generates candidates, relaxes them with a machine-learning force field
-such as MatterSim~\cite{yang2024mattersim}, and retains candidates that are valid, unique, and novel,
-(iii) retrieves training crystals from the candidate's chemical system and subsystems, and (iv) ranks
-each candidate $C$ by the equal-weight mean embedding distance
+Crys-JEPA addresses this bottleneck through an energy-aware embedding space $H$ in which crystals with similar formation energies tend to lie close together. Its refinement pipeline (i) pre-trains a generator on MP-20~\cite{xie2022cdvae}, (ii) generates candidates, relaxes them with a machine-learning force field such as MatterSim~\cite{yang2024mattersim}, and retains candidates $C$ that are valid, unique, and novel, (iii) retrieves known stable crystals from the training set $R(C)$ which match the candidate's chemical system, and (iv) generates a score for each candidate using the mean distance between the embeddings $h_C$ and $h_r$ of the candidate and its references 
 \[
-  D_C=\frac{1}{|R(C)|}\sum_{r\in R(C)}\lVert h_C-h_r\rVert_2^2.
+  D_C = \frac{1}{|R(C)|} \sum_{r \in R(C)} \lVert h_C-h_r \rVert_2^2
 \]
-The lowest-distance fraction is fed back to fine-tune the generator~\cite{liu2026crysjepa}. This is an
-effective DFT-free screening signal, but its reference pool has four limitations: it excludes potentially
-transferable outside-system analogues; it weights references equally despite unequal relevance and
-redundancy; it does not explicitly represent joint decomposition routes such as $AB+B$ for an $AB_2$
-candidate; and its score depends on the size and composition of a fixed reference set.
+The candidates with the lowest scores are fed back to fine-tune the generator~\cite{liu2026crysjepa}. This is an effective DFT-free screening signal, but its reference pool has four limitations: it excludes potentially transferable outside-system analogues, it weights references equally despite unequal relevance and redundancy, it does not explicitly represent joint decomposition routes such as $AB+B$ for an $AB_2$ candidate, and its score depends on the size and composition of a fixed reference set.
 
 \section*{Proposed Solution}
 \sectionrule
-We will study Crys-JEPA as a graph-structured representation and replace uniform reference aggregation
-with candidate-conditioned, topology-aware screening. Same-system phases will remain the physically
-valid competition set; outside-system crystals will provide learned structural or chemical context, not
-be treated as literal decomposition products.
+We will study Crys-JEPA as a graph-structured representation and replace uniform reference aggregation with candidate-conditioned, topology-aware screening. Same-system phases will be retained as the physically
+valid composition set, but outside-system crystals will also be included to provide learned structural or chemical context.
 
 \noindent
 \begin{minipage}[t]{0.66\textwidth}
 \vspace{0pt}
 \begin{enumerate}[label=\textbf{\arabic*.}]
-  \item \textbf{Characterise the latent space.} Construct an embedding-space $k$-nearest-neighbour
-  graph and use spectral and graph-theoretic analyses to identify clusters, low-density regions,
-  connectivity, and local topology.
-  \item \textbf{Probe encoded information.} Test whether neighbourhoods preserve properties beyond
-  formation energy, such as band-gap energies, force-field-derived quantities, and dielectric values,
-  where labels are available, and evaluate periodic, translation, and supercell invariance.
-  \item \textbf{Learn reference relevance.} Expand the search pool using embedding, structural, and
-  chemical similarity; then use graph-based weighting or a GNN aggregator to rank references and form
-  a candidate-specific stability score. Redundant or weakly relevant references should receive less
-  weight, while true competitors remain identifiable.
-  \item \textbf{Evaluate controlled gains.} Compare the original restricted, equal-weight score with
-  the expanded graph and learned weighting on the same generated pool and validation budget. Report
-  screening precision and \vsun, and analyse cases that the graph method ranks highly despite a low
-  baseline rank. Final claims of stability will use independent energy/hull validation rather than the
-  learned score alone.
+  \item \textbf{Characterise the latent space:} Construct an embedding-space $k$-nearest-neighbour graph and use spectral and graph-theoretic analysis to identify clusters, low-density regions connectivity, and local topology.
+
+  \item \textbf{Probe encoded information:} Test whether neighbourhoods preserve properties beyond formation energy, such as band-gap energies, force-field-derived quantities, and dielectric values, where labels are available, and evaluate periodic, translation, and supercell invariance.
+  
+  \item \textbf{Learn reference relevance:} Expand the search pool using embedding, structural, and chemical similarity, then use graph-based weighting or a GNN aggregator to rank references and form a candidate-specific stability score. Redundant or weakly relevant references should receive less weight, while true competitors should remain identifiable.
+
+  \item \textbf{Evaluate controlled gains:} Compare the original restricted, equal-weight score with the expanded graph and learned weighting on the same generated pool and validation budget. Report screening precision and \vsun, and analyse cases that the graph method ranks highly despite a low baseline rank. Final claims of stability will use independent energy/hull validation rather than the learned score alone.
 \end{enumerate}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.31\textwidth}
-\vspace{2pt}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.32\textwidth}
+\vspace{6pt}
 \centering
-\begin{tikzpicture}[x=0.88cm,y=0.78cm,font=\scriptsize,
-  node/.style={draw=navy,line width=.45pt,rounded corners=.7mm,minimum width=8mm,
-               minimum height=5.2mm,inner sep=1pt},
-  comp/.style={node,fill=teal!70},analog/.style={node,fill=purple!65}]
-  \node[font=\footnotesize] at (2.0,4.15) {Query composition: $AB_2$};
+\makebox[\linewidth][c]{%
+\begin{tikzpicture}[font=\scriptsize, node/.style={draw=navy,line width=.45pt,rounded corners=.7mm,minimum width=8mm, minimum height=5.2mm,inner sep=1pt}, comp/.style={node,fill=teal!70},analog/.style={node,fill=purple!65}]
+  \node[font=\footnotesize] at (1.25,4.15) {Query composition: $AB_2$};
   \node[comp] (a)  at (.35,3.25) {$A$};
   \node[comp] (ab) at (2.15,3.25) {$AB$};
   \node[comp] (b)  at (.35,2.10) {$B$};
@@ -118,25 +90,25 @@ be treated as literal decomposition products.
   \draw[violet!75!black,dashed,line width=.5pt] (ab2)--(ac);
   \draw[violet!75!black,dashed,line width=.5pt] (ab2)--(de);
   \draw[navy!65,dotted,line width=.5pt] (ac)--(de);
-  \node[align=left,anchor=north west,text width=3.7cm] at (-.05,.25)
-    {\textcolor{navy}{\rule{2.5mm}{1.2mm}} same-system phases\\
-     \textcolor{violet!75!black}{\rule{2.5mm}{1.2mm}} transferable analogues};
+  \node[align=left,anchor=north west,text width=3.7cm] at (-.60,.25)
+    {\textcolor{navy}{\rule{2.5mm}{1.2mm}} Same system phases\\
+     \textcolor{violet!75!black}{\rule{2.5mm}{1.2mm}} Transferable analogues};
 \end{tikzpicture}
+}%
 \vspace{1pt}
 
-{\color{muted}\scriptsize A broader reference graph preserves physical competitors while adding
-context from nearby chemistries.}
+{\scriptsize A broader reference graph preserves physical compositions while adding contextual information from nearby analogues}
 \end{minipage}
 
-\section*{Project Milestones}
+\medskip
+The proposed graph-informed screening method is expected to improve the precision of the refinement pipeline, while also providing interpretable rankings that can be used to understand the stability-novelty trade-off. The graph structure will allow for a more nuanced understanding of candidate stability, and the learned reference weights will enable the model to focus on the most relevant information for each candidate.
+
+\section*{Milestones}
 \sectionrule
-\begin{enumerate}[label=\textbf{M\arabic*.},leftmargin=7mm]
-  \item A quantitative account of the structure, encoded properties, and invariances of the Crys-JEPA
-  latent space.
-  \item A graph-informed method for constructing reference pools and learning candidate-specific
-  reference weights.
-  \item A matched-budget evaluation demonstrating improved screening precision and \vsun\ for the
-  generative-model refinement pipeline, together with interpretable ranking case studies.
+\begin{enumerate}[label=\textbf{\arabic*.}]
+  \item A quantitative account of the structure, encoded properties, and invariances of the Crys-JEPA latent space.
+  \item A graph-informed method for constructing reference pools and learning candidate-specific reference weights.
+  \item A matched-budget evaluation demonstrating improved screening precision and \vsun\ for the generative-model refinement pipeline, together with interpretable ranking case studies.
 \end{enumerate}
 
 \clearpage
@@ -188,7 +160,7 @@ contribution from every team member.
 \noindent{\color{navy!35}\rule{\textwidth}{0.5pt}}
 \vspace{3mm}
 
-\textbf{Aditi - Graph-theoretic analysis}\par
+\textbf{Aditi Sankaranarayanan - Graph theoretic analysis}\par
 Analyse the Crys-JEPA embedding graph using spectral, topological, and other graph-theoretic methods.
 
 \vspace{12mm}
@@ -198,9 +170,18 @@ Analyse the Crys-JEPA embedding graph using spectral, topological, and other gra
 \noindent{\color{navy!35}\rule{\textwidth}{0.5pt}}
 \vspace{3mm}
 
-\textbf{Anirudh - Physics-property analysis}\par
-Study how physical information is organised in the Crys-JEPA space, such as the distribution of nodes
-with similar dielectric values, band-gap energies, and force-field-derived quantities where labels are
+\textbf{Aditya Gupta - GNN and message-passing methods}\par
+Develop GNN or message-passing methods that learn reference relevance and address the baseline's equal weighting of reference crystals.
+
+\vspace{12mm}
+\noindent Signature: \hrulefill\hspace{8mm} Date: \rule{30mm}{0.4pt}
+
+\vspace{8mm}
+\noindent{\color{navy!35}\rule{\textwidth}{0.5pt}}
+\vspace{3mm}
+
+\textbf{Anirudh Narayanan - Physics informed property analysis}\par
+Study how physical information is organised in the Crys-JEPA space, such as the distribution of nodes with similar dielectric values, band-gap energies, and force-field-derived quantities where labels are
 available.
 
 \vspace{12mm}
@@ -210,20 +191,8 @@ available.
 \noindent{\color{navy!35}\rule{\textwidth}{0.5pt}}
 \vspace{3mm}
 
-\textbf{Aditya - GNN and message-passing methods}\par
-Develop GNN or message-passing methods that learn reference relevance and address the baseline's equal
-weighting of reference crystals.
-
-\vspace{12mm}
-\noindent Signature: \hrulefill\hspace{8mm} Date: \rule{30mm}{0.4pt}
-
-\vspace{8mm}
-\noindent{\color{navy!35}\rule{\textwidth}{0.5pt}}
-\vspace{3mm}
-
-\textbf{Atharva - Reference-graph construction and baseline implementation}\par
-Implement the original Crys-JEPA screening baseline, then construct and compare reference graphs,
-including $k$-nearest-neighbour graph choices.
+\textbf{Atharva Kumbhar - Reference-graph construction and baseline implementation}\par
+Implement the original Crys-JEPA screening baseline, then construct and compare reference graphs, including $k$-nearest-neighbour graph choices.
 
 \vspace{12mm}
 \noindent Signature: \hrulefill\hspace{8mm} Date: \rule{30mm}{0.4pt}
