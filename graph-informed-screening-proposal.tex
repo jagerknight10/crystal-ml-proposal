@@ -87,8 +87,8 @@ be treated as literal decomposition products.
   graph and use spectral and graph-theoretic analyses to identify clusters, low-density regions,
   connectivity, and local topology.
   \item \textbf{Probe encoded information.} Test whether neighbourhoods preserve properties beyond
-  formation energy, including dielectric similarity where labels are available, and evaluate periodic,
-  translation, and supercell invariance.
+  formation energy, such as band-gap energies, force-field-derived quantities, and dielectric values,
+  where labels are available, and evaluate periodic, translation, and supercell invariance.
   \item \textbf{Learn reference relevance.} Expand the search pool using embedding, structural, and
   chemical similarity; then use graph-based weighting or a GNN aggregator to rank references and form
   a candidate-specific stability score. Redundant or weakly relevant references should receive less
@@ -169,5 +169,63 @@ T. Xie, X. Fu, O.-E. Ganea, R. Barzilay, and T. S. Jaakkola,
 \url{https://arxiv.org/abs/2110.06197}
 
 \end{thebibliography}
+
+\clearpage
+\fontsize{10.5}{13}\selectfont
+
+\begin{center}
+  {\color{navy}\bfseries\fontsize{18}{21}\selectfont Team Contract}\par
+  \vspace{2pt}
+  {\color{muted}\large Project Task Allocation}
+\end{center}
+\vspace{5mm}
+
+We agree to contribute equally, communicate progress, review one another's work, and complete the
+responsibilities below. Task allocations may evolve by mutual agreement while preserving a balanced
+contribution from every team member.
+
+\vspace{7mm}
+\noindent{\color{navy!35}\rule{\textwidth}{0.5pt}}
+\vspace{3mm}
+
+\textbf{Aditi - Graph-theoretic analysis}\par
+Analyse the Crys-JEPA embedding graph using spectral, topological, and other graph-theoretic methods.
+
+\vspace{12mm}
+\noindent Signature: \hrulefill\hspace{8mm} Date: \rule{30mm}{0.4pt}
+
+\vspace{8mm}
+\noindent{\color{navy!35}\rule{\textwidth}{0.5pt}}
+\vspace{3mm}
+
+\textbf{Anirudh - Physics-property analysis}\par
+Study how physical information is organised in the Crys-JEPA space, such as the distribution of nodes
+with similar dielectric values, band-gap energies, and force-field-derived quantities where labels are
+available.
+
+\vspace{12mm}
+\noindent Signature: \hrulefill\hspace{8mm} Date: \rule{30mm}{0.4pt}
+
+\vspace{8mm}
+\noindent{\color{navy!35}\rule{\textwidth}{0.5pt}}
+\vspace{3mm}
+
+\textbf{Aditya - GNN and message-passing methods}\par
+Develop GNN or message-passing methods that learn reference relevance and address the baseline's equal
+weighting of reference crystals.
+
+\vspace{12mm}
+\noindent Signature: \hrulefill\hspace{8mm} Date: \rule{30mm}{0.4pt}
+
+\vspace{8mm}
+\noindent{\color{navy!35}\rule{\textwidth}{0.5pt}}
+\vspace{3mm}
+
+\textbf{Atharva - Reference-graph construction and baseline implementation}\par
+Implement the original Crys-JEPA screening baseline, then construct and compare reference graphs,
+including $k$-nearest-neighbour graph choices.
+
+\vspace{12mm}
+\noindent Signature: \hrulefill\hspace{8mm} Date: \rule{30mm}{0.4pt}
 
 \end{document}
